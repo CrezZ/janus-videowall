@@ -97,7 +97,6 @@ Janus.useDefaultDependencies = function(deps) {
   var f = (deps && deps.fetch) || fetch;
   var p = (deps && deps.Promise) || Promise;
   var socketCls = (deps && deps.WebSocket) || WebSocket;
-
   return {
     newWebSocket: function(server, proto) {
       return new socketCls(server, proto);
@@ -106,7 +105,7 @@ Janus.useDefaultDependencies = function(deps) {
     isArray: function(arr) {
       return Array.isArray(arr);
     },
-    webRTCAdapter: (deps && deps.adapter) || adapter,
+    webRTCAdapter: (deps && deps.adapter) || null,
     httpAPICall: function(url, options) {
       var fetchOptions = {
         method: options.verb,
@@ -191,7 +190,7 @@ Janus.useOldDependencies = function(deps) {
       return jq.isArray(arr);
     },
     extension: (deps && deps.extension) || defaultExtension,
-    webRTCAdapter: (deps && deps.adapter) || adapter,
+    webRTCAdapter: (deps && deps.adapter) || null,
     httpAPICall: function(url, options) {
       var payload = options.body !== undefined ? {
         contentType: 'application/json',
@@ -285,9 +284,10 @@ Janus.init = function(options) {
     }
     Janus.log("Initializing library");
 
-    var usedDependencies = options.dependencies || Janus.useDefaultDependencies();
+    var usedDependencies = options.dependencies || Janus.useDefaultDependencies(options);
     Janus.isArray = usedDependencies.isArray;
     Janus.webRTCAdapter = usedDependencies.webRTCAdapter;
+//ert (Janus.webRTCAdapter);
     Janus.httpAPICall = usedDependencies.httpAPICall;
     Janus.newWebSocket = usedDependencies.newWebSocket;
     Janus.extension = usedDependencies.extension;

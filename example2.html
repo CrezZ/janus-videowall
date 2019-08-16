@@ -1,0 +1,126 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+<script src="https://unpkg.com/isotope-layout@3.0.6/dist/isotope.pkgd.min.js"></script>
+
+
+<style>
+* { box-sizing: border-box; }
+.videoscreen {
+/*margin:5px;border:3px solid black;display:block;*/
+}
+.grid {
+width:100%;
+display:inline-block;
+
+}
+.grid:after {
+  content: '';
+  display: block;
+  clear: both;
+}
+
+.grid-item {
+//display:inline-block;
+  float: left;
+  width: 23%;
+  background: #e6e5e4;
+  border: 2px solid #b6b5b4;
+  overflow:hidden;    
+  
+}
+
+.grid-item-click:hover {
+  background: #8CF;
+  cursor: pointer;
+}
+.grid-item.gigante {
+  width: 48%;
+//  height: 300px;
+  background: #F80;
+}
+
+.grid-item.minimal {
+  width: 24%;
+  background: #e6e5e4;;
+}
+
+.gigante{
+
+}
+.grid-item--width2 { 
+    width: 48%; 
+  float: left;
+ display:inline-block;
+  background: #e6e5e4;
+  border: 2px solid #b6b5b4;
+}
+.grid-item--height2 { height: 100px; }
+
+</style>
+<div>Username : <span id="username"></span></div>
+<button type="button" id="register">Join</button>
+<button type="button" id="stop">Stop</button>
+<button type="button" id="remove">RemoveRoom</button>
+<button type="button" id="sharescreen">Share screen</button>
+<button type="button" id="stopsharescreen">Stop share screen</button>
+<button type="button" id="startrecording">Start recording</button>
+<button type="button" id="stoprecording">Stop recording</button>
+<button type="button" id="lowbitrate">LOW Bitrate</button>
+<hr>
+<div>
+<div style="width:500px;">
+  <div id="volume-meter-0" style="height:5px;width:50%;background-color:green;"></div>
+</div>
+<div id="myMosaic" class="grid">
+<div class="stamp grid-item grid-item--width2 videoscreen" id="videolocal">videolocal</div>
+<!--<div class="grid-item videoscreen" id="videoremote1">videoremote1</div>
+<div class="grid-item videoscreen" id="videoremote2">videoremote2</div>
+<div class="grid-item videoscreen" id="videoremote3">videoremote3</div>
+<div class="grid-item videoscreen" id="videoremote4">videoremote4</div>-->
+</div >
+</div>
+<div style='display:inline-block'>
+<hr>
+<div> <h1>Recorded list</h1> <button type="button" id="getrecordedlist">Список записей</button>
+<div id="recordedlist" style='position:inline'></div>
+<div class="videoscreen" id="videoplayback">videolocal</div>
+
+<hr>
+<h1>Chat</h1>
+<div id="chatbox"></div>
+<input id="chatinput"/><button id="chatsend">Send</button>
+</div>
+<script>
+var $grid=$('.grid').isotope({
+  // options
+  itemSelector: '.grid-item',
+//    stamp: '.stamp',
+layoutMode: 'masonry',
+//percentPosition: true,
+//containerStyle: null,
+masonry: {
+    columnWidth: 10,
+  }
+
+});
+
+$grid.on( 'click', '.grid-item-click', function() {
+  $(this).toggleClass('gigante');
+  $('#localvideo').toggleClass('gigante');
+  // trigger layout after item size changes
+ if ( $('.gigante').length ) {
+        $('#videolocal').toggleClass('gigante',false); 
+        $('#videolocal').toggleClass('minimal',true); 
+	}
+    else{  
+        $('#videolocal').toggleClass('gigante',true); 
+        $('#videolocal').toggleClass('minimal',false); 
+    }
+  $grid.isotope('layout');
+
+});
+
+var adminToken='123123123';
+var username='Teacher-' + (new Date()).valueOf();
+
+</script>
+<script type="text/javascript" src="/vue2/bundle.js" ></script>

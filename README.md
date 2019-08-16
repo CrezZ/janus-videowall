@@ -1,19 +1,70 @@
-[![npm version](https://badge.fury.io/js/janus-room.png)](https://badge.fury.io/js/janus-room)
 
-### Janus Room
+### Janus VideoWall (Room
+
+Project based on this repo https://github.com/tarsiusid/janus-room.
+But have many changes and bug improvements.
 
 A Janus client library that provides simple interface to create a minimal-complete conference video room. This is adopted from Janus demo example code but it's JQuery-less and React/Vue friendly.
 
-### Install
+### NEW in project
+
+```
+1 add webrtc-adapter inside bundle for interation with native code (bad idea, but it works for dynamic loading pages).
+2 add settings.js for override default settings in separate file.
+3 add additional callbacks for add/remove new videos events, start/stop remote stream. In example2/3 it used for rearrange vdeo mosaic.
+4 add example2.html with automatic arrange video mosaic, based on Isotope (https://isotope.metafizzy.co). Click on video enlargement it.
+5 add example3.html with filter received videos by username.
+6 add global slowLink callback to set 64К bitrate on bad network.
+7 add AudioBridge support to room for many to many audio without video;
+
+
+Add admin tools for manage rooms, example in admin.html
+
+npm run build-admin
+admin.js --> admin-bundle.js
+
+
+```
+
+
+### Install in new project
 
 ```
 $ npm install janus-room
+$ npm install webrtc-adapter
+
+For example2/3
+
+$ npm install isotope-layout
 ```
 
 ### Basic usage
 
 ```
+//Native code
+import adapter from 'webrtc-adapter';
 import Room from 'janus-room';
+import Settings from './setting';
+
+//NPM code
+
+window.Room = require('./src');
+const Settings = window.Settings = require('./settings');
+var adapter =  require('webrtc-adapter');
+
+...
+
+//Change settings in settings.js or add this code
+//Note - usernameFilter (first part of username wich videos will be added to screen), baseUsername (change default username) must be defined BEFORE add <script> in page for usage.
+
+var Settings = {
+ server : 'https://mcu1.myserver.ru:8089/janus',
+ roomId : 13371, // Demo room
+ usernameFilter : (typeof usernameFilter != 'undefined')? usernameFilter : null,
+ username : ((typeof baseUsername != 'undefined')? baseUsername : 'user'  + (new Date()).valueOf()),
+ publishOwnFeed: window.confirm("Start video?")
+}
+
 
 ...
 
@@ -73,7 +124,7 @@ Please note that toggleMute\* only mute the stream, not stop it. Use `togggleVid
 
 ### Working example
 
-Adjust the Janus gateway URL in `example.js`, then,
+Adjust the Janus gateway URL in `settings.js`, then,
 
 - `npm install`
 - `npm run build`
@@ -81,9 +132,6 @@ Adjust the Janus gateway URL in `example.js`, then,
 
 ### Warning
 
-`janus-room` is still in heavy development and will makes many breaking API changes.
+parent project `janus-room` and this project is still in heavy development and will makes many breaking API changes.
 
------
-
-![tarsier](https://user-images.githubusercontent.com/2534060/47661055-e06e4580-dbca-11e8-96f4-30dcdcb14c81.png)
 
