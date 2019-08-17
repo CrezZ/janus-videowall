@@ -29,22 +29,52 @@ var createRoom = function(){
 
 }
 
+var createAudioRoom = function(){
+    room.createAudioRoom({
+      room: Settings.roomId,
+      secret: (Settings.adminToken || ''),
+      publishers: 20,
+      is_private: true,
+     allowed: [(Settings.token || '')],
+
+    })
+      .then(() => {
+        setTimeout(function() {
+          room.registerAudio({
+            username: Settings.username,
+            room: Settings.roomId,
+	    secret: Settings.adminToken || '',
+          });
+        }, 1000);
+      })
+      .catch((err) => {
+        console.log('1'+err.message);
+      })
+
+}
+
 // Event handlers
 var onError = function(err) {
-  if (typeof err.indexOf === "function" && err.indexOf('The room is unavailable') > -1) {
+  if (typeof err.indexOf === "function" && err.indexOf('The room is unavailable') > -1) { ///video room
     alert('Room  is unavailable. Created.');
     createRoom();
+  } else 
+  if (typeof err.indexOf === "function" && err.indexOf('No such room') > -1) { //audio room
+    alert('Audio Room  is unavailable. Created.');
+    createAudioRoom();
   } else {
 
 
 
-if (err.Response && err.Response.error && err.Response.error.code )  // HTTP Error
+if (err.response && err.response.status )  // HTTP Error
 {
-    var errno = err.Response.error.code;
+    var errno = err.response.status;
     switch (errno){
     case 404:{//token not found. TImeout. Restart all
-	room.stop();
-	initroom();
+	if (err.message.indexOf('API')!= -1){ //API call failed
+    	        room.stop();
+		initroom();
+	    }
     }
     case 458:{ //Session not found... restart all
 	
@@ -55,12 +85,13 @@ if (err.Response && err.Response.error && err.Response.error.code )  // HTTP Err
 //
 if (Settings.debug){ //print to chatbox debug errors
   $('#chatbox').append(err.message);
+}
     console.log('e2-'+err.message);
     if (err.error && err.error.message)
         console.log('e2-'+err.error.message);
     if (err && err.response)
         console.log('e2-'+JSON.stringify(err.response));
-  }
+  
  }
 }
 
@@ -89,23 +120,38 @@ var onLocalJoin = function() {
 var onRemoteJoin = function(index, remoteUsername, feedId, id) {
  // id == publisher Id
 console.log('new feed - '+index+' '+remoteUsername + 'feed' + feedId + 'id'+id);
-if (Settings.usernameFilter && remoteUsername.indexOf(Settings.usernameFilter)!=0) return; // DO FILTER
+if (Settings.usernameFilter && remoteUsername.indexOf(Settings.usernameFilter)!=0) { // DO FILTER
+console.log('Filtered feed');
+return; 
+}
 var addAdminTools = (Settings.isAdmin && Settings.adminToken)? 
 	    "<div><button id='remote-kick-"+index+"' onclick='remoteKick("+id+");'>Kick</button>"+
 	    "<button id='remote-low-"+index+"' onclick='remoteLowBW("+id+");'>LowBW</button>"+
 	    "<button id='remote-mute-"+index+"' onclick='remoteBute("+id+");'>Mute</button></div>"
 	    :"" ;
-var volumeBar= '<div style="width:100%;">  <div id="volume-meter-'+index+'" style="height:5px;width:50%;background-color:green;"></div></div>';
-    if (! $( "#videoremote"+index ).length ) { //check if eists
+	var volumeBar= '<div style="width:100%;">  <div id="volume-meter-'+index+'" style="height:5px;width:50%;background-color:green;"></div></div>';
+	var el=document.getElementById('videoremote'+index);
+    if ( el == null ) { //check if nit exists
 	var item=$('<div class="grid-item grid-item-click" id="videoremote'+index+'">'+
-	volumeBar+'<div>' + remoteUsername + ':' + feedId + '</div>'+addAdminTools+'<div><video style="width:100%;" id="remotevideo' + index + '" autoplay/></div>'
+	volumeBar+'<div>' + remoteUsername  + '<span id="bitrateremote'+index+'"></span></div>'+addAdminTools+'<div><video style="width:100%;" id="remotevideo' + index + '" autoplay/></div>'
 	+ '</div>');
 	 // TODO remove jquery
 	    $grid.append(item).isotope( 'appended',item).isotope('layout');
 		} //if
+	    else
+	    { console.log('Div exists');
+	}
   //document.getElementById('videoremote' + index).innerHTML = 
   let target = document.getElementById('remotevideo' + index);
   room.attachStream(target, index);
+ // update bitrate
+   if (!target.dataset.bitratetimer)
+	target.dataset.bitratetimer=   setInterval(function(){
+		room.getStreamBitrate(index)
+			.then(function(result){ 
+				document.getElementById('bitrateremote' + index).innerHTML = ' '+result+ 'kbps';
+			});
+		},3000);
     // todo create callback
   if (Settings.onRemoteAttach)Settings.onRemoteAttach('remotevideo' + index); //Callback
 
@@ -113,10 +159,57 @@ var volumeBar= '<div style="width:100%;">  <div id="volume-meter-'+index+'" styl
 
 }
 
+var onRemoteJoinAudio = function(index, remoteUsername, feedId, id) {
+ // id == publisher Id
+console.log('new audio feed - '+index+' '+remoteUsername + 'feed' + feedId + 'id'+id);
+if (Settings.usernameFilter && remoteUsername.indexOf(Settings.usernameFilter)!=0) { // DO FILTER
+console.log('Filtered feed');
+return; 
+}
+var addAdminTools = (Settings.isAdmin && Settings.adminToken)? 
+	    "<div>"+
+	    "<button id='audioremote-mute-"+index+"' onclick='MuteAudio("+index+");'>UnMute</button></div>"
+	    :"" ;
+	var volumeBar= '<div style="width:100%;">  <div id="volume-meter-audio-'+index+'" style="height:5px;width:1%;background-color:green;"></div></div>';
+	var el=document.getElementById('audioremote'+index);
+    if ( el == null ) { //check if nit exists
+	var item=$('<div class="grid-item grid-item-click" id="audioremote'+index+'"> Audio Bridge'+
+	volumeBar+'<div>' + remoteUsername  + '<span id="bitrateaudioremote'+index+'"></span></div>'+addAdminTools+
+    '<div><audio style="width:100%;" id="remoteaudio' + index + '" autoplay/></div>'
+	+ '</div>');
+	 // TODO remove jquery
+	    $grid.append(item).isotope( 'appended',item).isotope('layout');
+		document.getElementById('audioremote'+index).dataset.mute = true;
+		} //if
+	    else
+	    { console.log('Div exists');
+	}
+	
+  //document.getElementById('videoremote' + index).innerHTML = 
+  let target = document.getElementById('remoteaudio' + index);
+  room.attachAudioStream(target, index);
+ // update bitrate
+	/*target.dataset.bitratetimer=
+	    setInterval(function(){
+		room.getStreamBitrate(index)
+		.then(function(result){ 
+		    document.getElementById('bitrateremote' + index).innerHTML = ' '+result+ 'kbps';
+	    });
+	},3000);*/
+    // todo create callback
+//  if (Settings.onRemoteAttach)Settings.onRemoteAttach('remotevideo' + index); //Callback
+
+
+}
+
 var onRemoteUnjoin = function(index) {
 console.log('remove feed - '+index);
+var el=document.getElementById('remotevideo'+index);
+var el2=document.getElementById('videoremote'+index);
+// todo it is not work !!!
+ clearInterval(el.dataset.bitratetimer);
 
-  $grid.isotope( 'remove',$('#videoremote' + index)).isotope('layout');
+  $grid.isotope( 'remove',el2).isotope('layout');
 
 }
 
@@ -151,6 +244,7 @@ var slowLink = function(uplink,nacks){
 
 var options = {
   server: Settings.server,
+  debug: true,
   adapter:adapter.default,
   room: Settings.roomId,
   token: Settings.token || '123123123',
@@ -162,6 +256,7 @@ var options = {
   volumeMeterSkip: 10,
   onLocalJoin: onLocalJoin,
   onRemoteJoin: onRemoteJoin,
+  onRemoteJoinAudio: onRemoteJoinAudio,
   onRemoteUnjoin: onRemoteUnjoin,
   onRecordedPlay: onRecordedPlay,
   onMessage: onMessage,
@@ -181,7 +276,13 @@ room.init()
         username: Settings.username,
         room: Settings.roomId,
       });
+      room.registerAudio({
+        username: Settings.username,
+        room: Settings.roomId,
+      });
+
     }, 1000);
+
   })
   .catch((err) => {
     alert(err);
@@ -326,6 +427,27 @@ window.myfeed.send({message:{
  "secret" : (Settings.adminToken || ''),
  "room": Settings.roomId, 
  "id": index,
+    }
+});
+return false; //prevent inherit
+}
+
+window.MuteAudio = function(index){
+	var mute=true; 
+	var mutestr='';
+	var el=document.getElementById('audioremote'+index);
+	if (el && el.dataset ) {
+		if (el.dataset.mute == 'true')
+		{mute=false;mutestr='Mute';} 
+	else 
+		{mute=true;mutestr='UnMute';}  
+    }
+	if (el && el.dataset )	{el.dataset.mute = mute;}
+	document.getElementById('audioremote-mute-'+index).innerHTML=mutestr;
+window.myaudiofeed.send({message:{
+"request" : "configure",
+ //"secret" : (Settings.adminToken || ''),
+  "muted": mute,
     }
 });
 return false; //prevent inherit
