@@ -63,9 +63,21 @@ display:inline-block;
 <button type="button" id="sharescreen">Share screen</button>
 <button type="button" id="stopsharescreen">Stop share screen</button>
 <button type="button" id="startrecording">Start recording</button>
-<button type="button" id="stoprecording">Stop recording</button>
+<button type="button" id="stoprecording">Stop recording</button><br>
 <button type="button" id="lowbitrate">LOW Bitrate</button>
+<select id='bw'><option value='64000'>64K</option>
+<option value='128000' selected>128K</option>
+<option value='256000'>256K</option>
+<option value='512000'>512K</option>
+<option value='1024000'>1024K</option>
+<option value='2048000'>2048K</option>
+</select>
+<button type="button" id="audiomuteall">Audio Mute All</button>
+<button type="button" id="videomuteall">VideoMute All</button>
+<button type="button" id="sendnginx">Publish/unpublish NGINX</button>
+<button type="button" id="sendffmpeg">Send/stop to transcode</button>
 <hr>
+<a href='https://chrome.google.com/webstore/detail/janus-webrtc-screensharin/hapfgfdkleiggjjpfpenajgdnfckjpaj'>Download Screen share extension</a>
 <div>
 <div style="width:500px;">
   <div id="volume-meter-0" style="height:5px;width:50%;background-color:green;"></div>
@@ -78,9 +90,10 @@ display:inline-block;
 <div class="grid-item videoscreen" id="videoremote4">videoremote4</div>-->
 </div >
 </div>
+
 <div style='display:inline-block'>
 <hr>
-<div> <h1>Recorded list</h1> <button type="button" id="getrecordedlist">Список записей</button>
+<div> <h1>Recorded list</h1> <button type="button" id="getrecordedlist">Records</button>
 <div id="recordedlist" style='position:inline'></div>
 <div class="videoscreen" id="videoplayback">videolocal</div>
 
@@ -121,6 +134,6 @@ $grid.on( 'click', '.grid-item-click', function() {
 
 var adminToken='123123123';
 var username='Teacher-' + (new Date()).valueOf();
-
+var useAudioBridgePlugin=true;
 </script>
 <script type="text/javascript" src="/vue2/bundle.js" ></script>

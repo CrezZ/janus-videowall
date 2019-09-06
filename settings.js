@@ -9,6 +9,7 @@ var Settings = {
  isAdmin:(typeof adminToken !== 'undefined' )?true:false, //only show admin buttons
  token: (typeof token !== 'undefined' )?token: '123123',
  adminToken: (typeof adminToken !== 'undefined' )?adminToken: '',
+ useAudioBridgePlugin: (typeof useAudioBridgePlugin !== 'undefined' )?useAudioBridgePlugin: false,
  
 }
 

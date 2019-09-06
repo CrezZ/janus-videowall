@@ -63,8 +63,17 @@ display:inline-block;
 <button type="button" id="sharescreen">Share screen</button>
 <button type="button" id="stopsharescreen">Stop share screen</button>
 <button type="button" id="startrecording">Start recording</button>
-<button type="button" id="stoprecording">Stop recording</button>
+<button type="button" id="stoprecording">Stop recording</button> <br>
 <button type="button" id="lowbitrate">LOW Bitrate</button>
+<select id='bw'><option value='64000'>64K</option>
+<option value='128000' selected>128K</option>
+<option value='256000'>256K</option>
+<option value='512000'>512K</option>
+<option value='1024000'>1024K</option>
+<option value='2048000'>2048K</option>
+</select>
+<button type="button" id="audiomuteall">Audio Mute All</button>
+<button type="button" id="videomuteall">VideoMute All</button>
 <hr>
 <div>
 <div style="width:500px;">
@@ -80,7 +89,7 @@ display:inline-block;
 </div>
 <div style='display:inline-block'>
 <hr>
-<div> <h1>Recorded list</h1> <button type="button" id="getrecordedlist">Список записей</button>
+<div> <h1>Recorded list</h1> <button type="button" id="getrecordedlist">Records:</button>
 <div id="recordedlist" style='position:inline'></div>
 <div class="videoscreen" id="videoplayback">videolocal</div>
 
@@ -121,5 +130,6 @@ $grid.on( 'click', '.grid-item-click', function() {
 
 var username='Student-' + (new Date()).valueOf();
 var usernameFilter='Teacher';
+var useAudioBridgePlugin=true;
 </script>
 <script type="text/javascript" src="/vue2/bundle.js" ></script>

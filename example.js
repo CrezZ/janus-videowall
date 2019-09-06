@@ -1,4 +1,5 @@
 window.Room = require('./src');
+
 const Settings = window.Settings = require('./settings');
 
 var room;
@@ -71,13 +72,14 @@ if (err.response && err.response.status )  // HTTP Error
     var errno = err.response.status;
     switch (errno){
     case 404:{//token not found. TImeout. Restart all
-	if (err.message.indexOf('API')!= -1){ //API call failed
+	if (err.message.indexOf('API')!= -1){ //API call failed 404 - session timeout
     	        room.stop();
-		initroom();
+				setTimeout(roominit(),2000);
 	    }
     }
     case 458:{ //Session not found... restart all
-	
+				room.stop();
+				setTimeout(roominit(),2000);
     }
     
     }
@@ -104,6 +106,12 @@ var onVolumeMeterUpdate = function(streamIndex, volume) {
   if (el) el.style.width = volume + '%';
 }
 
+var onFilterName = function(filter) {
+	if (Settings.usernameFilter && filter && filter.indexOf(Settings.usernameFilter)!=0) { // DO FILTER
+	return false;}
+	
+	return true;
+}
 var onLocalJoin = function() {
   var htmlStr = '<div>' + username + '</div><div>';
   htmlStr += '<button id="local-toggle-mute-audio" onclick="localToggleMuteAudio()">Mut</button>';
@@ -120,30 +128,35 @@ var onLocalJoin = function() {
 var onRemoteJoin = function(index, remoteUsername, feedId, id) {
  // id == publisher Id
 console.log('new feed - '+index+' '+remoteUsername + 'feed' + feedId + 'id'+id);
-if (Settings.usernameFilter && remoteUsername.indexOf(Settings.usernameFilter)!=0) { // DO FILTER
+if (Settings.usernameFilter && remoteUsername  &&  remoteUsername.indexOf(Settings.usernameFilter)!=0) { // DO FILTER
 console.log('Filtered feed');
 return; 
 }
-var addAdminTools = (Settings.isAdmin && Settings.adminToken)? 
+var addAdminTools ="<div>";
+ addAdminTools += (Settings.isAdmin && Settings.adminToken)? 
 	    "<div><button id='remote-kick-"+index+"' onclick='remoteKick("+id+");'>Kick</button>"+
-	    "<button id='remote-low-"+index+"' onclick='remoteLowBW("+id+");'>LowBW</button>"+
-	    "<button id='remote-mute-"+index+"' onclick='remoteBute("+id+");'>Mute</button></div>"
-	    :"" ;
+	    "<button id='remote-low-"+index+"' onclick='remoteLowBW("+id+");'>LowBW</button>"
+		:"" ;
+	addAdminTools += "<button id='remote-mute-"+index+"' onclick='remoteMute("+index+");'>Mute</button><button id='fullscreen-'"+index+"' onclick='fullScreen("+index+");'>FullScreen</button></div>";	
 	var volumeBar= '<div style="width:100%;">  <div id="volume-meter-'+index+'" style="height:5px;width:50%;background-color:green;"></div></div>';
+	
 	var el=document.getElementById('videoremote'+index);
     if ( el == null ) { //check if nit exists
-	var item=$('<div class="grid-item grid-item-click" id="videoremote'+index+'">'+
-	volumeBar+'<div>' + remoteUsername  + '<span id="bitrateremote'+index+'"></span></div>'+addAdminTools+'<div><video style="width:100%;" id="remotevideo' + index + '" autoplay/></div>'
-	+ '</div>');
-	 // TODO remove jquery
+		var item=$('<div class="grid-item grid-item-click" id="videoremote'+index+'">'+
+		volumeBar+'<div>' + remoteUsername  + '<span id="bitrateremote'+index+'"></span></div>'+addAdminTools+'<div><video style="width:100%;" id="remotevideo' + index + '" autoplay/></div>'
+		+ '</div>');
+		// TODO remove jquery
 	    $grid.append(item).isotope( 'appended',item).isotope('layout');
 		} //if
-	    else
+	 else
 	    { console.log('Div exists');
-	}
+		}
   //document.getElementById('videoremote' + index).innerHTML = 
   let target = document.getElementById('remotevideo' + index);
+  
   room.attachStream(target, index);
+  
+  
  // update bitrate
    if (!target.dataset.bitratetimer)
 	target.dataset.bitratetimer=   setInterval(function(){
@@ -162,32 +175,38 @@ var addAdminTools = (Settings.isAdmin && Settings.adminToken)?
 var onRemoteJoinAudio = function(index, remoteUsername, feedId, id) {
  // id == publisher Id
 console.log('new audio feed - '+index+' '+remoteUsername + 'feed' + feedId + 'id'+id);
-if (Settings.usernameFilter && remoteUsername.indexOf(Settings.usernameFilter)!=0) { // DO FILTER
+
+if (Settings.usernameFilter &&  remoteUsername && remoteUsername.indexOf(Settings.usernameFilter)!=0) { // DO FILTER
 console.log('Filtered feed');
 return; 
 }
-var addAdminTools = (Settings.isAdmin && Settings.adminToken)? 
+var addAdminTools =  
 	    "<div>"+
-	    "<button id='audioremote-mute-"+index+"' onclick='MuteAudio("+index+");'>UnMute</button></div>"
-	    :"" ;
+	    "<button id='audioremote-mute-"+index+"' onclick='muteAudio("+index+");'>Remote UnMute</button></div>"+
+	    "<button id='audioremote-localmute-"+index+"' onclick='mutelocalAudio("+index+");'>Local UnMute</button></div>"
+	    ;
 	var volumeBar= '<div style="width:100%;">  <div id="volume-meter-audio-'+index+'" style="height:5px;width:1%;background-color:green;"></div></div>';
 	var el=document.getElementById('audioremote'+index);
     if ( el == null ) { //check if nit exists
 	var item=$('<div class="grid-item grid-item-click" id="audioremote'+index+'"> Audio Bridge'+
-	volumeBar+'<div>' + remoteUsername  + '<span id="bitrateaudioremote'+index+'"></span></div>'+addAdminTools+
+	volumeBar+'<div>' + '<span id="bitrateaudioremote'+index+'"></span></div>'+addAdminTools+
     '<div><audio style="width:100%;" id="remoteaudio' + index + '" autoplay/></div>'
 	+ '</div>');
 	 // TODO remove jquery
 	    $grid.append(item).isotope( 'appended',item).isotope('layout');
 		document.getElementById('audioremote'+index).dataset.mute = true;
+		
+		  let target = document.getElementById('remoteaudio' + index);
+//		if (!target){
+			room.attachAudioStream(target, index);
+//}
 		} //if
 	    else
 	    { console.log('Div exists');
 	}
 	
   //document.getElementById('videoremote' + index).innerHTML = 
-  let target = document.getElementById('remoteaudio' + index);
-  room.attachAudioStream(target, index);
+
  // update bitrate
 	/*target.dataset.bitratetimer=
 	    setInterval(function(){
@@ -200,12 +219,22 @@ var addAdminTools = (Settings.isAdmin && Settings.adminToken)?
 //  if (Settings.onRemoteAttach)Settings.onRemoteAttach('remotevideo' + index); //Callback
 
 
-}
+} 
 
 var onRemoteUnjoin = function(index) {
 console.log('remove feed - '+index);
 var el=document.getElementById('remotevideo'+index);
 var el2=document.getElementById('videoremote'+index);
+// todo it is not work !!!
+ clearInterval(el.dataset.bitratetimer);
+
+  $grid.isotope( 'remove',el2).isotope('layout');
+
+}
+var onRemoteUnjoinAudio = function(index) {
+console.log('remove audio feed - '+index);
+var el=document.getElementById('remoteaudio'+index);
+var el2=document.getElementById('audioremote'+index);
 // todo it is not work !!!
  clearInterval(el.dataset.bitratetimer);
 
@@ -237,33 +266,41 @@ var onMessage = function(data) {
 }
 
 var slowLink = function(uplink,nacks){
-  console.log('Bitrate limited to 64Kb/s, uplink='+uplink+',nack='+nacks);
-  window.myfeed.send({"message": { "request": "configure", "bitrate": 64000 }});
-
+  var bw=document.getElementById('bw').value;
+  console.log('Bitrate limited to '+bw+'b/s, uplink='+uplink+',nack='+nacks);
+   if(window.myfeed && !window.myfeed.lowbitrate ){
+	   if (window.myfeed ) {
+			window.myfeed.lowbitrate=true;
+			window.myfeed.send({"message": { "request": "configure", "bitrate": bw }});
+	   }
+ }
 }
 
 var options = {
   server: Settings.server,
-  debug: true,
+  //debug: true,
   adapter:adapter.default,
   room: Settings.roomId,
   token: Settings.token || '123123123',
   secret: Settings.adminToken || '123123123',
-  extensionId: Settings.extensionid || 'bkkjmbohcfkfemepmepailpamnppmjkk',
+  extensionId: Settings.extensionid || 'hapfgfdkleiggjjpfpenajgdnfckjpaj',
   publishOwnFeed: Settings.publishOwnFeed,
-  iceServers: Settings.iceServers || [{ urls : 'stun:stun.l.google.com:19302' }],
+  iceServers: Settings.iceServers || [{urls:'turns:mcu1.hvcloud.ru:5349?transport=tcp', username:'0', credential: '123123123'}, { urls : 'stun:stun.l.google.com:19302' }],
   useRecordPlugin: true,
   volumeMeterSkip: 10,
   onLocalJoin: onLocalJoin,
   onRemoteJoin: onRemoteJoin,
   onRemoteJoinAudio: onRemoteJoinAudio,
   onRemoteUnjoin: onRemoteUnjoin,
+  onRemoteUnjoinAudio: onRemoteUnjoinAudio,
   onRecordedPlay: onRecordedPlay,
+  onFilterName : onFilterName,
   onMessage: onMessage,
   slowLink: slowLink,
   onError: onError,
   onWarning: onWarning,
   onVolumeMeterUpdate: onVolumeMeterUpdate,
+  useAudioBridgePlugin:   Settings.useAudioBridgePlugin,
 }
 
 room = window.room = new window.Room(options);
@@ -312,6 +349,7 @@ document.getElementById('stop').onclick = function() {
 room.stop();
 }
 
+if (document.getElementById('remove'))
 document.getElementById('remove').onclick = function() {
   room.removeRoom()
     .then(() => {
@@ -324,14 +362,55 @@ document.getElementById('remove').onclick = function() {
 }
 
 document.getElementById('lowbitrate').onclick = function() {
-  alert('Bitrate limited to 64Kb/s');
-  window.myfeed.send({"message": { "request": "configure", "bitrate": 64000 }});
+	slowLink(0,0);
+ // alert('Bitrate limited to 64Kb/s');
+//  window.myfeed.send({"message": { "request": "configure", "bitrate": 64000 }});
 //sfutest.send({"message": { "request": "configure", "bitrate": bitrate }});
 
 }
+if (document.getElementById('videomuteall'))
+document.getElementById('videomuteall').onclick = function() {
+	 var videos = document.getElementsByTagName('video');
+	var el=document.getElementById('videomuteall');
+	el.dataset.mute=(el.dataset.mute==true)?false:true;
+
+	if (window.myfeed.mystream) {
+        let tracks = window.myfeed.mystream.getVideoTracks();
+        for (let i in tracks) {
+          if (tracks[i]) {
+            tracks[i].stop();
+          }
+        }
+		
+      }
+	
+	if (!el.dataset.mute) {el.innerHTML='Video UnMute'} else {el.innerHTML='Video Mute'};
+  
+}
+
+if (document.getElementById('audiomuteall'))
+document.getElementById('audiomuteall').onclick = function() {
+
+	  var audios = document.getElementsByTagName('audio');
+	   var videos = document.getElementsByTagName('video');
+	   var el=document.getElementById('audiomuteall');
+	el.dataset.mute=(el.dataset.mute==true)?false:true;
+	
+		
+    for (var i = 0; i < videos.length; i++) {
+        videos[i].muted = el.dataset.mute;
+    }
+    for (var i = 0; i < audios.length; i++) {
+        audios[i].muted = el.dataset.mute;
+    }
+	if (!el.dataset.mute) {el.innerHTML='Audio UnMute'} else {el.innerHTML='Audio Mute'};
+}
+
+
+
 
 document.getElementById('register').onclick = function() {
-room.stop();
+//room.stop();
 roominit();
 //  room.register({
 //    username: username
@@ -385,7 +464,18 @@ document.getElementById('startrecording').onclick = function() {
     name: recordName
   });
 }
+/*
+document.getElementById('sendnginx').onclick = function() {
+if (!window.myfeed.send1){
+	window.myfeed.send1=true;
+	
+} else {
+	window.myfeed.send1=false;
+	
+}
+}
 
+*/
 window.recordedPlayback = function(recordId) {
   room.recordedPlayback(recordId);
 }
@@ -400,6 +490,7 @@ window.localToggleMuteAudio = function() {
         el.innerHTML = "Mute";
       }
     });
+	event.stopPropagation();
 }
 
 window.localToggleMuteVideo = function() {
@@ -412,6 +503,7 @@ window.localToggleMuteVideo = function() {
         el.innerHTML = "Pause webcam";
       }
     });
+	event.stopPropagation();
 }
 
 window.localToggleVideo = function() {
@@ -419,6 +511,7 @@ window.localToggleVideo = function() {
     .then((stopped) => {
       console.log(stopped);
     });
+	event.stopPropagation();
 }
 
 window.remoteKick = function(index){
@@ -429,13 +522,73 @@ window.myfeed.send({message:{
  "id": index,
     }
 });
+event.stopPropagation();
 return false; //prevent inherit
 }
 
-window.MuteAudio = function(index){
-	var mute=true; 
+window.fullScreen = function(index){
+	
+	var elem = document.getElementById("remotevideo"+index); 
+
+/* When the openFullscreen() function is executed, open the video in fullscreen.
+Note that we must include prefixes for different browsers, as they don't support the requestFullscreen method yet */
+
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) { /* Firefox */
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE/Edge */
+    elem.msRequestFullscreen();
+  }
+event.stopPropagation();
+
+}
+window.muteAudio = function(index){
+	var mute=false; 
 	var mutestr='';
 	var el=document.getElementById('audioremote'+index);
+	if (el && el.dataset ) {
+		if (el.dataset.mute == 'true')
+		{mute=false;mutestr='Remote Mute';} 
+	else 
+		{mute=true;mutestr='Remote UnMute';}  
+    }
+	if (el && el.dataset )	{el.dataset.mute = mute;}
+	document.getElementById('audioremote-mute-'+index).innerHTML=mutestr;
+	window.myaudiofeed.send({message:{
+	"request" : "configure",
+	//"secret" : (Settings.adminToken || ''),
+	"muted": mute,
+    }
+   });
+   event.stopPropagation();
+   return false; //prevent inherit
+}
+
+window.mutelocalAudio = function(index){
+	var mute=false; 
+	var mutestr='';
+	var el=document.getElementById('audioremote'+index);
+	if (el && el.dataset ) {
+		if (el.dataset.localmute == 'true')
+		{mute=false;mutestr='Local Mute';} 
+	else 
+		{mute=true;mutestr='Local UnMute';}  
+    }
+	if (el && el.dataset )	{el.dataset.localmute = mute;}
+	document.getElementById('audioremote-localmute-'+index).innerHTML=mutestr;
+     el.muted=mute;
+	
+   event.stopPropagation();
+   return false; //prevent inherit
+}
+
+window.remoteMute = function(index){
+	var mute=true; 
+	var mutestr='';
+	var el=document.getElementById('remotevideo'+index);
 	if (el && el.dataset ) {
 		if (el.dataset.mute == 'true')
 		{mute=false;mutestr='Mute';} 
@@ -443,12 +596,12 @@ window.MuteAudio = function(index){
 		{mute=true;mutestr='UnMute';}  
     }
 	if (el && el.dataset )	{el.dataset.mute = mute;}
-	document.getElementById('audioremote-mute-'+index).innerHTML=mutestr;
-window.myaudiofeed.send({message:{
-"request" : "configure",
- //"secret" : (Settings.adminToken || ''),
-  "muted": mute,
-    }
-});
-return false; //prevent inherit
+	el.muted=el.dataset.mute;
+	document.getElementById('remote-mute-'+index).innerHTML=mutestr;
+	
+	
+   event.stopPropagation();
+   return false; //prevent inherit
 }
+
+
