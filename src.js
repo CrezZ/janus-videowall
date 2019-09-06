@@ -981,16 +981,16 @@ function newRemoteFeed(id, display, audio, video) {
 var doSimulcast = (getQueryStringValue("simulcast") === "yes" || getQueryStringValue("simulcast") === "true");
 
 class Room {
-
   constructor(options) {
     // Make sure the entire configuration get flushed first
-    config = {
+config = {
       remotestreams: {},
       feeds: [],
       bitrateTimer: [],
 	  remoteaudiostreams: {},
 	  feedsaudio : []
     }
+    
     window.remotestreams = config.remotestreams;
     // Assign the values
     config.debug = options.debug || false,
@@ -1024,7 +1024,7 @@ class Room {
     }];
   }
 
-
+  
   init() {
     return new Promise((resolve, reject) => {
       try {
@@ -1192,20 +1192,23 @@ class Room {
 	 return new Promise((resolve, reject) => {
       let videoStopped = false;
       let audioStopped = false;
-      if (!config.mystream) {
+      if (!config.remotestreams || config.remotestreams.lenght==0) {
         reject('No local stream.');
         return;
       } else {
-        if (config.mystream.getVideoTracks().length > 0) {
-			for (let i in config.mystream.getVideoTracks()) {
+		  for (let j in remotestreams) {
+        if (remotestreams[j].stream.getVideoTracks().length > 0) {
+			var tracks=remotestreams[j].stream.getVideoTracks();
+			for (let i in tracks) {
           if (tracks[i]) {
             tracks[i].stop();
 			videoStopped = tracks[i].readyState === 'ended';
-          }
-		  
-          
-        }
-	  } }
+            }
+		  }
+	    } 
+		
+		  } //for
+	  } //else
       /*if (config.publishOwnFeed) {
         publishOwnFeed({
           audioSend: !audioStopped,
@@ -1627,6 +1630,9 @@ class Room {
         });
       }
     });
+  }
+  getStreamCount(){
+	  return remotestreams;
   }
   getStream(streamIndex) {
     return new Promise((resolve, reject) => {

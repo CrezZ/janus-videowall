@@ -374,15 +374,7 @@ document.getElementById('videomuteall').onclick = function() {
 	var el=document.getElementById('videomuteall');
 	el.dataset.mute=(el.dataset.mute==true)?false:true;
 
-	if (window.myfeed.mystream) {
-        let tracks = window.myfeed.mystream.getVideoTracks();
-        for (let i in tracks) {
-          if (tracks[i]) {
-            tracks[i].stop();
-          }
-        }
-		
-      }
+    room.toggleRemoteVideo();
 	
 	if (!el.dataset.mute) {el.innerHTML='Video UnMute'} else {el.innerHTML='Video Mute'};
   
